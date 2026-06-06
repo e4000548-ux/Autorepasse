@@ -41,13 +41,21 @@ StockAuto é um marketplace web responsivo de classificados de veículos focado 
 - `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me`
 - `GET /api/files/{path}`
 
+## Posicionamento
+Foco em **Campo Grande - MS**: "As melhores ofertas de Campo Grande em um só lugar."
+
 ## Implementado (até 06/2026)
 - 06/2026 — Backend FastAPI completo (auth, vehicles, dealers, admin, files, sitemap/robots)
 - 06/2026 — Componentes base: Layout, VehicleCard, WhatsAppButton, ProtectedRoute
-- 06/2026 — Página **Home** completa com hero, busca, categorias, veículos em destaque, revendedores, CTA
-- 06/2026 — Páginas públicas: Listagem (`Listing.jsx`), Detalhe do veículo (`VehicleDetail.jsx`), Lista de revendedores (`DealerList.jsx`), Perfil do revendedor (`DealerProfile.jsx`)
-- 06/2026 — `App.js` com BrowserRouter + AuthProvider + Layout + rotas
-- 06/2026 — Páginas de autenticação: `Login.jsx` (split brand panel + form) e `Register.jsx` (3 seções: plano → dados da loja → acesso, com aviso de fluxo PIX manual). Integração via `AuthContext` (cookie JWT). Verificado em smoke test com admin → redirect `/admin` → `/api/auth/me` 200.
+- 06/2026 — Página **Home**, Listagem, Detalhe, Lista/Perfil de revendedores, Login, Cadastro
+- 06/2026 — **Importado do GitHub** (stockautosite-alt/stock01) e configurado no ambiente Emergent (JWT_SECRET + EMERGENT_LLM_KEY adicionados). Teste E2E inicial 32/32 OK.
+- 06/2026 — **Rotas protegidas**: `/painel` (dealer) e `/admin` (admin) via `ProtectedRoute` (removidos placeholders ComingSoon).
+- 06/2026 — **Painel ADM Master** (`AdminPanel.jsx`): Dashboard com métricas (GET /api/admin/stats), gestão de revendedores (aprovar/bloquear/excluir), moderação de anúncios (aprovar/reprovar via PUT /api/admin/vehicles/{id}/status), notificações (marcar lida), config PIX + preços dos planos.
+- 06/2026 — **SEO local Campo Grande**: title dinâmico `[Marca] [Modelo] [Ano] em [cidade] - [uf] | StockAuto`, alt-text automático com nome da revenda, rodapé "Buscas populares em Campo Grande" (4 links), texto de apoio em /veiculos, title/description do index.html.
+- 06/2026 — **Seed Campo Grande - MS**: 2 revendedores (Bandeirantes Motors, MS Veículos Premium) + 6 anúncios ativos.
+- 06/2026 — **Máscara de preço** R$ 0.000,00 no formulário de anúncio (CurrencyInput); vazio = "Consultar Valor".
+- 06/2026 — Fluxo MVP ponta-a-ponta validado (cadastro → PIX/aprovação → anúncio com fotos drag-drop → moderação → publicação). Teste E2E 39/39 backend + 100% frontend.
+- 06/2026 — **Identidade visual (logo)**: logo oficial StockAuto integrado — header (versão fundo claro, transparente), footer (versão fundo escuro) e favicons (ícone circular) em /app/frontend/public (favicon.ico, favicon-16/32/192/512, apple-touch-icon). Imagens processadas com PIL (fundo branco/preto → transparente). (1) `lang=pt-BR` no HTML (corrige tradução automática que gerava "Enfermeira") + lista de estados com nome completo (UF_STATES); (2) Busca avançada com filtros de Câmbio e Combustível (backend list_vehicles aceita transmission/fuel; migração `normalize_vehicle_choices` padroniza dados); (3) ícone "olhinho" de mostrar senha em Login e Cadastro; (4) Lightbox na galeria do anúncio (clique amplia + setas ‹ ›); (5) telefone + WhatsApp do vendedor em destaque no mobile (sticky bar); (6) Painel Admin: editar todos os dados do revendedor incluindo e-mail (login) e redefinir senha — backend AdminUserUpdateIn aceita email (com validação de unicidade) e password (re-hash bcrypt).
 
 ## Backlog priorizado
 
