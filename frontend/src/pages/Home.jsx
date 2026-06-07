@@ -16,6 +16,7 @@ const CATEGORY_META = {
   nautico: { label: "Náuticos", emoji: "—" },
   utilitario: { label: "Utilitários", emoji: "—" },
   implementos: { label: "Implementos", emoji: "—" },
+  tratores: { label: "Tratores", emoji: "—" },
   outros: { label: "Outros", emoji: "—" },
 };
 
@@ -88,20 +89,20 @@ export default function Home() {
             </div>
           </div>
           <form onSubmit={onSearch} className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 flex items-center bg-zinc-100 px-5 sm:px-6 h-16 sm:h-[68px] border border-zinc-200 focus-within:border-black transition-colors">
-              <Search size={22} className="text-zinc-500 flex-shrink-0" />
+            <div className="flex-1 flex items-center bg-zinc-100 px-5 sm:px-6 h-[72px] sm:h-[68px] border border-zinc-200 focus-within:border-black transition-colors">
+              <Search size={24} className="text-zinc-500 flex-shrink-0 sm:w-[22px] sm:h-[22px]" />
               <input
                 data-testid={HOMEPAGE.searchInput}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Marca, modelo ou cidade…"
-                className="flex-1 ml-3 outline-none bg-transparent text-base sm:text-lg placeholder:text-zinc-500"
+                className="flex-1 ml-3 outline-none bg-transparent text-lg sm:text-lg placeholder:text-zinc-500"
               />
             </div>
             <button
               data-testid={HOMEPAGE.searchSubmit}
               type="submit"
-              className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 sm:px-10 h-16 sm:h-[68px] font-bold uppercase tracking-tight text-base sm:text-lg inline-flex items-center justify-center gap-2"
+              className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 sm:px-10 h-[72px] sm:h-[68px] font-bold uppercase tracking-tight text-lg inline-flex items-center justify-center gap-2"
             >
               Buscar <ArrowRight size={20} />
             </button>

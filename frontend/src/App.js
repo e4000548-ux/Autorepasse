@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -36,7 +36,7 @@ function App() {
               <Route path="/veiculo/:slug" element={<VehicleDetail />} />
               <Route path="/revendedores" element={<DealerList />} />
               <Route path="/revendedor/:slug" element={<DealerProfile />} />
-              <Route path="/planos" element={<ComingSoon title="Planos" />} />
+              <Route path="/planos" element={<Navigate to="/cadastro" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/cadastro" element={<Register />} />
               <Route

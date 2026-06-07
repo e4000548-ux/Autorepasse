@@ -58,6 +58,7 @@ CATEGORIES = [
     {"code": "nautico", "label": "Náutico"},
     {"code": "utilitario", "label": "Utilitário"},
     {"code": "implementos", "label": "Implementos"},
+    {"code": "tratores", "label": "Tratores"},
     {"code": "outros", "label": "Outros"},
 ]
 
