@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import VehicleCard from "@/components/VehicleCard";
+import BannerCarousel from "@/components/BannerCarousel";
 import { HOMEPAGE } from "@/constants/testIds";
 import { ArrowRight, Search, MapPin, Star } from "lucide-react";
 import { fileUrl } from "@/lib/api";
@@ -24,12 +25,14 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [dealers, setDealers] = useState([]);
+  const [banners, setBanners] = useState([]);
 
   useEffect(() => {
     document.title = "StockAuto — As melhores ofertas de Campo Grande, MS";
     api.get("/categories").then((r) => setCategories(r.data)).catch(() => {});
     api.get("/vehicles?limit=8").then((r) => setVehicles(r.data.items || [])).catch(() => {});
     api.get("/dealers?limit=6").then((r) => setDealers(r.data || [])).catch(() => {});
+    api.get("/banners").then((r) => setBanners(r.data || [])).catch(() => {});
   }, []);
 
   const onSearch = (e) => {
@@ -41,64 +44,87 @@ export default function Home() {
 
   return (
     <div data-testid={HOMEPAGE.hero}>
-      {/* HERO */}
-      <section className="relative bg-black text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-30 mix-blend-screen" style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 30%, #FF3B30 0%, transparent 40%), radial-gradient(circle at 80% 70%, #1a1a1a 0%, transparent 50%)",
-        }} />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 grid md:grid-cols-12 gap-10 items-end">
-          <div className="md:col-span-7">
-            <div className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-6">
+      {/* SEO H1 — visually hidden but read by Google & screen readers */}
+      <h1 className="sr-only">
+        StockAuto — Marketplace de veículos em Campo Grande, MS. Compre direto do revendedor:
+        carros, motos, camionetes, caminhões e mais, sem intermediação.
+      </h1>
+
+      {/* BANNER ROTATIVO (gerenciado pelo admin) */}
+      {banners.length > 0 ? (
+        <BannerCarousel items={banners} />
+      ) : (
+        /* Fallback hero quando ainda não há banners cadastrados */
+        <section className="relative bg-black text-white overflow-hidden">
+          <div className="absolute inset-0 opacity-30 mix-blend-screen" style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 30%, #FF3B30 0%, transparent 40%), radial-gradient(circle at 80% 70%, #1a1a1a 0%, transparent 50%)",
+          }} />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center">
+            <div className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-4">
               Campo Grande · MS · Marketplace de veículos
             </div>
-            <h1 className="font-black tracking-tighter leading-[0.95] text-5xl sm:text-6xl lg:text-7xl"
-                style={{ fontFamily: "Cabinet Grotesk, Inter, sans-serif" }}>
-              Compre <span className="text-[#FF3B30]">direto</span><br />
-              do revendedor.
-            </h1>
-            <p className="mt-8 text-lg text-zinc-300 max-w-xl leading-relaxed">
-              As melhores ofertas de Campo Grande, MS em um só lugar. Sem intermediação:
-              chame no WhatsApp e feche negócio direto com a revenda. Carros, motos,
-              camionetes e mais.
-            </p>
-            <form onSubmit={onSearch} className="mt-10 flex flex-col sm:flex-row gap-3 max-w-xl">
-              <div className="flex-1 flex items-center bg-white text-black px-5 h-14">
-                <Search size={20} className="text-zinc-500" />
-                <input
-                  data-testid={HOMEPAGE.searchInput}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Marca, modelo ou cidade…"
-                  className="flex-1 ml-3 outline-none bg-transparent text-base placeholder:text-zinc-400"
-                />
-              </div>
-              <button
-                data-testid={HOMEPAGE.searchSubmit}
-                type="submit"
-                className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 h-14 font-bold uppercase tracking-tight inline-flex items-center justify-center gap-2"
-              >
-                Buscar <ArrowRight size={18} />
-              </button>
-            </form>
-            <div className="mt-6 flex gap-4 text-xs text-zinc-400">
-              <Link to="/planos" data-testid={HOMEPAGE.heroCta} className="hover:text-white">Anuncie agora →</Link>
-              <Link to="/revendedores" className="hover:text-white">Revendedores →</Link>
+            <div className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-[0.95]"
+                 style={{ fontFamily: "Cabinet Grotesk, Inter, sans-serif" }}>
+              Compre <span className="text-[#FF3B30]">direto</span> do revendedor.
             </div>
+            <p className="mt-5 text-base sm:text-lg text-zinc-300 max-w-2xl mx-auto">
+              As melhores ofertas de Campo Grande, MS em um só lugar. Chame no WhatsApp
+              e feche negócio direto com a revenda.
+            </p>
           </div>
+        </section>
+      )}
 
-          <div className="md:col-span-5 grid grid-cols-2 gap-3">
-            {[
-              { k: "+1.500", v: "Anúncios" },
-              { k: "+300", v: "Revendedores" },
-              { k: "+50", v: "Cidades" },
-              { k: "100%", v: "Direto na loja" },
-            ].map((s) => (
-              <div key={s.v} className="border border-zinc-800 p-6 bg-black/40 backdrop-blur">
-                <div className="text-3xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>{s.k}</div>
-                <div className="text-xs text-zinc-400 uppercase tracking-wider mt-1">{s.v}</div>
+      {/* BUSCADOR + STATS — abaixo do banner */}
+      <section className="bg-white border-b border-zinc-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7">
+              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+                Campo Grande · MS · Marketplace
               </div>
-            ))}
+              <div className="mt-2 text-2xl md:text-3xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
+                Encontre seu próximo veículo.
+              </div>
+              <form onSubmit={onSearch} className="mt-5 flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 flex items-center bg-zinc-100 px-5 h-14 border border-zinc-200">
+                  <Search size={20} className="text-zinc-500" />
+                  <input
+                    data-testid={HOMEPAGE.searchInput}
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Marca, modelo ou cidade…"
+                    className="flex-1 ml-3 outline-none bg-transparent text-base placeholder:text-zinc-500"
+                  />
+                </div>
+                <button
+                  data-testid={HOMEPAGE.searchSubmit}
+                  type="submit"
+                  className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 h-14 font-bold uppercase tracking-tight inline-flex items-center justify-center gap-2"
+                >
+                  Buscar <ArrowRight size={18} />
+                </button>
+              </form>
+              <div className="mt-4 flex gap-4 text-xs text-zinc-500">
+                <Link to="/planos" data-testid={HOMEPAGE.heroCta} className="hover:text-black">Anuncie agora →</Link>
+                <Link to="/revendedores" className="hover:text-black">Revendedores →</Link>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
+              {[
+                { k: "+1.500", v: "Anúncios" },
+                { k: "+300", v: "Revendedores" },
+                { k: "+50", v: "Cidades" },
+                { k: "100%", v: "Direto na loja" },
+              ].map((s) => (
+                <div key={s.v} className="border border-zinc-200 p-5">
+                  <div className="text-2xl md:text-3xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>{s.k}</div>
+                  <div className="text-[11px] text-zinc-500 uppercase tracking-wider mt-1">{s.v}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

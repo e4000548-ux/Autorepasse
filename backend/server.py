@@ -306,6 +306,16 @@ class SettingsIn(BaseModel):
     plans: Optional[List[dict]] = None
 
 
+class BannerReorderIn(BaseModel):
+    order: List[str]
+
+
+def public_banner(b: dict) -> dict:
+    b = dict(b)
+    b.pop("_id", None)
+    return b
+
+
 # ============================================================================
 # HELPERS (DB)
 # ============================================================================
@@ -821,6 +831,92 @@ async def serve_file(path: str):
     except http_requests.HTTPError as e:
         raise HTTPException(status_code=404, detail="Arquivo não encontrado") from e
     return FastAPIResponse(content=data, media_type=ctype, headers={"Cache-Control": "public, max-age=86400"})
+
+
+# ============================================================================
+# BANNERS (home carousel) — public read + admin CRUD
+# ============================================================================
+@api.get("/banners")
+async def public_banners():
+    cur = db.banners.find({"active": True}, {"_id": 0}).sort("position", 1)
+    return [b async for b in cur]
+
+
+@api.get("/admin/banners")
+async def admin_list_banners(user: dict = Depends(get_admin_user)):
+    cur = db.banners.find({}, {"_id": 0}).sort("position", 1)
+    return [b async for b in cur]
+
+
+@api.post("/admin/banners")
+async def admin_create_banner(
+    image_desktop: UploadFile = File(...),
+    image_mobile: Optional[UploadFile] = File(None),
+    link_url: str = Form(...),
+    alt: str = Form(""),
+    active: str = Form("true"),
+    user: dict = Depends(get_admin_user),
+):
+    desktop_path = await upload_image_to_storage(image_desktop, user["id"])
+    mobile_path = await upload_image_to_storage(image_mobile, user["id"]) if image_mobile else None
+    last = await db.banners.find_one({}, sort=[("position", -1)])
+    position = (last["position"] + 1) if last else 1
+    doc = {
+        "id": str(uuid.uuid4()),
+        "image_desktop_path": desktop_path,
+        "image_mobile_path": mobile_path,
+        "link_url": link_url.strip(),
+        "alt": alt.strip(),
+        "active": str(active).lower() in ("1", "true", "on", "yes"),
+        "position": position,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    await db.banners.insert_one(doc)
+    return public_banner(doc)
+
+
+@api.put("/admin/banners/reorder")
+async def admin_reorder_banners(body: BannerReorderIn, user: dict = Depends(get_admin_user)):
+    for idx, bid in enumerate(body.order):
+        await db.banners.update_one({"id": bid}, {"$set": {"position": idx + 1, "updated_at": now_iso()}})
+    return {"ok": True}
+
+
+@api.put("/admin/banners/{bid}")
+async def admin_update_banner(
+    bid: str,
+    image_desktop: Optional[UploadFile] = File(None),
+    image_mobile: Optional[UploadFile] = File(None),
+    link_url: Optional[str] = Form(None),
+    alt: Optional[str] = Form(None),
+    active: Optional[str] = Form(None),
+    user: dict = Depends(get_admin_user),
+):
+    b = await db.banners.find_one({"id": bid})
+    if not b:
+        raise HTTPException(status_code=404, detail="Banner não encontrado")
+    update: dict = {"updated_at": now_iso()}
+    if image_desktop is not None:
+        update["image_desktop_path"] = await upload_image_to_storage(image_desktop, user["id"])
+    if image_mobile is not None:
+        update["image_mobile_path"] = await upload_image_to_storage(image_mobile, user["id"])
+    if link_url is not None:
+        update["link_url"] = link_url.strip()
+    if alt is not None:
+        update["alt"] = alt.strip()
+    if active is not None:
+        update["active"] = str(active).lower() in ("1", "true", "on", "yes")
+    await db.banners.update_one({"id": bid}, {"$set": update})
+    return public_banner(await db.banners.find_one({"id": bid}, {"_id": 0}))
+
+
+@api.delete("/admin/banners/{bid}")
+async def admin_delete_banner(bid: str, user: dict = Depends(get_admin_user)):
+    res = await db.banners.delete_one({"id": bid})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Banner não encontrado")
+    return {"ok": True}
 
 
 # ============================================================================

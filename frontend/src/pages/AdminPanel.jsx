@@ -6,13 +6,14 @@ import { brl, km, UF_STATES } from "@/lib/format";
 import {
   LayoutDashboard, Users, Car, Bell, Settings as SettingsIcon,
   Check, X, Trash2, Store, Clock, CheckCircle2, RefreshCw, ArrowRight, Image as ImageIcon,
-  Pencil, Eye, EyeOff,
+  Pencil, Eye, EyeOff, GalleryHorizontal, ChevronUp, ChevronDown, ExternalLink, Plus,
 } from "lucide-react";
 
 const TABS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, testId: APANEL.tabDashboard },
   { key: "dealers", label: "Revendedores", icon: Users, testId: APANEL.tabDealers },
   { key: "vehicles", label: "Moderação", icon: Car, testId: APANEL.tabVehicles },
+  { key: "banners", label: "Banners", icon: GalleryHorizontal, testId: APANEL.tabBanners },
   { key: "notifications", label: "Notificações", icon: Bell, testId: APANEL.tabNotifications },
   { key: "settings", label: "Pagamento", icon: SettingsIcon, testId: APANEL.tabSettings },
 ];
@@ -46,6 +47,7 @@ export default function AdminPanel() {
       {tab === "dashboard" && <DashboardTab stats={stats} onGo={setTab} />}
       {tab === "dealers" && <DealersTab onChanged={loadStats} />}
       {tab === "vehicles" && <VehiclesTab onChanged={loadStats} />}
+      {tab === "banners" && <BannersTab />}
       {tab === "notifications" && <NotificationsTab onChanged={loadStats} />}
       {tab === "settings" && <SettingsTab />}
     </PanelLayout>
@@ -312,6 +314,277 @@ function VehiclesTab({ onChanged }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- Banners */
+function BannersTab() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null = closed, {} = new, {...} = edit
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    api.get("/admin/banners").then(({ data }) => setItems(data)).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const toggleActive = async (b) => {
+    const fd = new FormData();
+    fd.append("active", String(!b.active));
+    await api.put(`/admin/banners/${b.id}`, fd);
+    load();
+  };
+
+  const move = async (idx, dir) => {
+    const newOrder = [...items];
+    const target = idx + dir;
+    if (target < 0 || target >= newOrder.length) return;
+    [newOrder[idx], newOrder[target]] = [newOrder[target], newOrder[idx]];
+    setItems(newOrder); // optimistic
+    await api.put("/admin/banners/reorder", { order: newOrder.map((b) => b.id) });
+    load();
+  };
+
+  const remove = async (id) => {
+    await api.delete(`/admin/banners/${id}`);
+    setConfirmDelete(null);
+    load();
+  };
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Banner rotativo da home</div>
+          <p className="text-sm text-zinc-600 mt-1 max-w-2xl">
+            Cadastre imagens com link externo. Tamanhos recomendados:{" "}
+            <strong className="text-black">Desktop 1920×500</strong> ·{" "}
+            <strong className="text-black">Mobile 1080×1080</strong>. Formatos: JPG, PNG ou WEBP (máx 8 MB).
+          </p>
+        </div>
+        <button
+          data-testid={APANEL.bannerNew}
+          onClick={() => setEditing({})}
+          className="inline-flex items-center gap-2 bg-black hover:bg-zinc-800 text-white px-5 h-11 font-bold uppercase tracking-tight text-sm"
+        >
+          <Plus size={16} /> Novo banner
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="mt-8 text-zinc-500">Carregando…</div>
+      ) : items.length === 0 ? (
+        <Empty label="Nenhum banner cadastrado. Crie o primeiro para ele aparecer na home." />
+      ) : (
+        <div className="mt-6 border border-zinc-200 divide-y divide-zinc-200 bg-white">
+          {items.map((b, idx) => (
+            <div key={b.id} data-testid={APANEL.bannerRow(b.id)} className="p-4 flex flex-col md:flex-row md:items-center gap-4 hover:bg-zinc-50">
+              <div className="w-44 h-20 bg-zinc-100 flex-shrink-0 overflow-hidden border border-zinc-200">
+                <img src={fileUrl(b.image_desktop_path)} alt={b.alt || ""} className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold tracking-tight truncate">{b.alt || "(sem descrição)"}</span>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 ${b.active ? "bg-emerald-100 text-emerald-800" : "bg-zinc-200 text-zinc-600"}`}>
+                    {b.active ? "Ativo" : "Inativo"}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">#{idx + 1}</span>
+                </div>
+                <a href={b.link_url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 hover:text-black inline-flex items-center gap-1 mt-1 truncate">
+                  <ExternalLink size={12} /> {b.link_url}
+                </a>
+                {b.image_mobile_path && (
+                  <div className="text-[11px] text-zinc-400 mt-0.5">Possui versão mobile</div>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button data-testid={APANEL.bannerMoveUp(b.id)} onClick={() => move(idx, -1)} disabled={idx === 0}
+                  className="p-2.5 border border-zinc-300 hover:border-black disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Subir">
+                  <ChevronUp size={16} />
+                </button>
+                <button data-testid={APANEL.bannerMoveDown(b.id)} onClick={() => move(idx, +1)} disabled={idx === items.length - 1}
+                  className="p-2.5 border border-zinc-300 hover:border-black disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Descer">
+                  <ChevronDown size={16} />
+                </button>
+                <button data-testid={APANEL.bannerToggle(b.id)} onClick={() => toggleActive(b)}
+                  className={`px-3 h-9 text-xs font-bold uppercase tracking-tight border ${b.active ? "border-zinc-300 hover:border-[#FF3B30] hover:text-[#FF3B30]" : "border-zinc-300 hover:border-emerald-600 hover:text-emerald-600"}`}>
+                  {b.active ? "Desativar" : "Ativar"}
+                </button>
+                <button data-testid={APANEL.bannerEdit(b.id)} onClick={() => setEditing(b)}
+                  className="p-2.5 border border-zinc-300 hover:border-black" aria-label="Editar">
+                  <Pencil size={16} />
+                </button>
+                <button data-testid={APANEL.bannerDelete(b.id)} onClick={() => setConfirmDelete(b)}
+                  className="p-2.5 border border-zinc-300 hover:border-[#FF3B30] hover:text-[#FF3B30]" aria-label="Excluir">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <BannerFormModal
+          banner={Object.keys(editing).length ? editing : null}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="Excluir banner?"
+          body={`Remover este banner da home? Esta ação não pode ser desfeita.`}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => remove(confirmDelete.id)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BannerFormModal({ banner, onClose, onSaved }) {
+  const isEdit = !!banner;
+  const [linkUrl, setLinkUrl] = useState(banner?.link_url || "");
+  const [alt, setAlt] = useState(banner?.alt || "");
+  const [active, setActive] = useState(banner?.active ?? true);
+  const [desktopFile, setDesktopFile] = useState(null);
+  const [mobileFile, setMobileFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!isEdit && !desktopFile) {
+      setError("Selecione a imagem desktop (1920×500).");
+      return;
+    }
+    if (!linkUrl.trim()) {
+      setError("Informe a URL de destino do banner.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      if (desktopFile) fd.append("image_desktop", desktopFile);
+      if (mobileFile) fd.append("image_mobile", mobileFile);
+      fd.append("link_url", linkUrl.trim());
+      fd.append("alt", alt.trim());
+      fd.append("active", String(active));
+      if (isEdit) {
+        await api.put(`/admin/banners/${banner.id}`, fd);
+      } else {
+        await api.post("/admin/banners", fd);
+      }
+      onSaved?.();
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Erro ao salvar banner.");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center overflow-y-auto py-8 px-4">
+      <div className="bg-white max-w-2xl w-full" data-testid="apanel-banner-modal">
+        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between z-10">
+          <div>
+            <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">{isEdit ? "Editar banner" : "Novo banner"}</div>
+            <div className="text-2xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
+              Banner da home
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-zinc-100" aria-label="Fechar"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={submit} className="p-6 space-y-5">
+          {error && <div className="border-l-4 border-[#FF3B30] bg-red-50 text-red-700 text-sm px-4 py-2">{error}</div>}
+
+          <Field label={`Imagem Desktop ${isEdit ? "(deixe vazio p/ manter)" : "— 1920×500 px"}`}>
+            <input
+              data-testid={APANEL.bannerFormImageDesktop}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={(e) => setDesktopFile(e.target.files?.[0] || null)}
+              className="w-full text-sm file:mr-3 file:px-4 file:py-2 file:border file:border-zinc-300 file:bg-white file:font-bold file:uppercase file:text-xs file:tracking-tight hover:file:border-black"
+            />
+            {isEdit && banner.image_desktop_path && (
+              <div className="mt-2 w-full h-24 bg-zinc-100 overflow-hidden border border-zinc-200">
+                <img src={fileUrl(banner.image_desktop_path)} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </Field>
+
+          <Field label={`Imagem Mobile (opcional) — 1080×1080 px`}>
+            <input
+              data-testid={APANEL.bannerFormImageMobile}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={(e) => setMobileFile(e.target.files?.[0] || null)}
+              className="w-full text-sm file:mr-3 file:px-4 file:py-2 file:border file:border-zinc-300 file:bg-white file:font-bold file:uppercase file:text-xs file:tracking-tight hover:file:border-black"
+            />
+            <div className="text-[11px] text-zinc-500 mt-1.5">
+              Se não enviar, será usada a imagem desktop também no celular.
+            </div>
+            {isEdit && banner.image_mobile_path && (
+              <div className="mt-2 w-24 h-24 bg-zinc-100 overflow-hidden border border-zinc-200">
+                <img src={fileUrl(banner.image_mobile_path)} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </Field>
+
+          <Field label="Link de destino (URL externa)">
+            <input
+              data-testid={APANEL.bannerFormLink}
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://..."
+              required
+              className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white"
+            />
+          </Field>
+
+          <Field label="Descrição (alt — usada para SEO/acessibilidade)">
+            <input
+              data-testid={APANEL.bannerFormAlt}
+              type="text"
+              value={alt}
+              onChange={(e) => setAlt(e.target.value)}
+              placeholder="Ex: Promoção de SUVs em Campo Grande"
+              maxLength={140}
+              className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white"
+            />
+          </Field>
+
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              data-testid={APANEL.bannerFormActive}
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+              className="w-5 h-5 accent-black"
+            />
+            <span className="text-sm font-bold uppercase tracking-tight">Banner ativo (visível na home)</span>
+          </label>
+
+          <div className="flex gap-3 pt-2 border-t border-zinc-200">
+            <button type="button" onClick={onClose} className="flex-1 h-12 border border-zinc-300 hover:border-black font-bold uppercase tracking-tight">Cancelar</button>
+            <button
+              data-testid={APANEL.bannerFormSubmit}
+              type="submit"
+              disabled={saving}
+              className="flex-1 h-12 bg-black hover:bg-zinc-800 disabled:opacity-60 text-white font-bold uppercase tracking-tight"
+            >
+              {saving ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar banner"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
