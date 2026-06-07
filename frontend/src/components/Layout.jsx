@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { NAV } from "@/constants/testIds";
-import { Menu, X, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight, Instagram, Facebook } from "lucide-react";
 
 const linkBase = "text-sm font-bold tracking-tight uppercase hover:opacity-60 transition-opacity";
 
@@ -87,6 +87,31 @@ export default function Layout({ children }) {
               O marketplace direto entre compradores e revendedores de veículos
               em Campo Grande, MS. Anúncios verificados, contato via WhatsApp, sem burocracia.
             </p>
+            <div className="mt-6 flex items-center gap-3">
+              <a
+                href="https://www.instagram.com/stockautoms?igsh=MXNzcjQ3cnFlaGdnaQ=="
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Siga o StockAuto no Instagram"
+                data-testid="footer-social-instagram"
+                className="group inline-flex items-center justify-center w-11 h-11 border border-zinc-800 hover:border-[#FF3B30] hover:bg-[#FF3B30] transition-colors"
+              >
+                <Instagram size={20} className="text-zinc-300 group-hover:text-white transition-colors" />
+              </a>
+              <a
+                href="https://www.facebook.com/share/1Hi1BsnRCH/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Siga o StockAuto no Facebook"
+                data-testid="footer-social-facebook"
+                className="group inline-flex items-center justify-center w-11 h-11 border border-zinc-800 hover:border-[#FF3B30] hover:bg-[#FF3B30] transition-colors"
+              >
+                <Facebook size={20} className="text-zinc-300 group-hover:text-white transition-colors" />
+              </a>
+              <span className="ml-2 text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">
+                @stockautoms
+              </span>
+            </div>
           </div>
           <div>
             <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500 mb-4">Navegação</div>
