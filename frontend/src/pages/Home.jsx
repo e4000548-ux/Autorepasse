@@ -76,55 +76,40 @@ export default function Home() {
         </section>
       )}
 
-      {/* BUSCADOR + STATS — abaixo do banner */}
+      {/* BUSCADOR — abaixo do banner */}
       <section className="bg-white border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
-          <div className="grid lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-7">
-              <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500">
-                Campo Grande · MS · Marketplace
-              </div>
-              <div className="mt-2 text-2xl md:text-3xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
-                Encontre seu próximo veículo.
-              </div>
-              <form onSubmit={onSearch} className="mt-5 flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 flex items-center bg-zinc-100 px-5 h-14 border border-zinc-200">
-                  <Search size={20} className="text-zinc-500" />
-                  <input
-                    data-testid={HOMEPAGE.searchInput}
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Marca, modelo ou cidade…"
-                    className="flex-1 ml-3 outline-none bg-transparent text-base placeholder:text-zinc-500"
-                  />
-                </div>
-                <button
-                  data-testid={HOMEPAGE.searchSubmit}
-                  type="submit"
-                  className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 h-14 font-bold uppercase tracking-tight inline-flex items-center justify-center gap-2"
-                >
-                  Buscar <ArrowRight size={18} />
-                </button>
-              </form>
-              <div className="mt-4 flex gap-4 text-xs text-zinc-500">
-                <Link to="/planos" data-testid={HOMEPAGE.heroCta} className="hover:text-black">Anuncie agora →</Link>
-                <Link to="/revendedores" className="hover:text-black">Revendedores →</Link>
-              </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+          <div className="text-center sm:text-left">
+            <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+              Campo Grande · MS · Marketplace
             </div>
-
-            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
-              {[
-                { k: "+1.500", v: "Anúncios" },
-                { k: "+300", v: "Revendedores" },
-                { k: "+50", v: "Cidades" },
-                { k: "100%", v: "Direto na loja" },
-              ].map((s) => (
-                <div key={s.v} className="border border-zinc-200 p-5">
-                  <div className="text-2xl md:text-3xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>{s.k}</div>
-                  <div className="text-[11px] text-zinc-500 uppercase tracking-wider mt-1">{s.v}</div>
-                </div>
-              ))}
+            <div className="mt-2 text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
+              Encontre seu próximo veículo.
             </div>
+          </div>
+          <form onSubmit={onSearch} className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 flex items-center bg-zinc-100 px-5 sm:px-6 h-16 sm:h-[68px] border border-zinc-200 focus-within:border-black transition-colors">
+              <Search size={22} className="text-zinc-500 flex-shrink-0" />
+              <input
+                data-testid={HOMEPAGE.searchInput}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Marca, modelo ou cidade…"
+                className="flex-1 ml-3 outline-none bg-transparent text-base sm:text-lg placeholder:text-zinc-500"
+              />
+            </div>
+            <button
+              data-testid={HOMEPAGE.searchSubmit}
+              type="submit"
+              className="bg-[#FF3B30] hover:bg-[#E13128] text-white px-8 sm:px-10 h-16 sm:h-[68px] font-bold uppercase tracking-tight text-base sm:text-lg inline-flex items-center justify-center gap-2"
+            >
+              Buscar <ArrowRight size={20} />
+            </button>
+          </form>
+          <div className="mt-5 flex flex-wrap justify-center sm:justify-start gap-x-6 gap-y-2 text-sm text-zinc-500">
+            <Link to="/planos" data-testid={HOMEPAGE.heroCta} className="hover:text-black font-semibold">Anuncie agora →</Link>
+            <Link to="/revendedores" className="hover:text-black font-semibold">Revendedores →</Link>
+            <Link to="/veiculos" className="hover:text-black font-semibold">Ver todos os veículos →</Link>
           </div>
         </div>
       </section>
