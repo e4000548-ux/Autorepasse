@@ -131,15 +131,19 @@ export default function Register() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {plans.map((p) => {
                     const active = form.plan_code === p.code;
+                    const periodLabel = p.period_label || (p.period_days ? `${p.period_days} dias` : "mensal");
                     return (
                       <button
                         type="button"
                         key={p.code}
                         data-testid={`register-plan-${p.code}`}
                         onClick={() => selectPlan(p.code)}
-                        className={`text-left border p-5 transition-all ${active ? "border-black bg-black text-white" : "border-zinc-300 hover:border-black"}`}
+                        className={`text-left border p-5 transition-all relative ${active ? "border-black bg-black text-white" : "border-zinc-300 hover:border-black"}`}
                       >
-                        <div className="flex items-center justify-between">
+                        <span className={`absolute -top-2.5 left-4 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${active ? "bg-[#FF3B30] text-white" : "bg-black text-white"}`}>
+                          {periodLabel} · {p.period_days || 90} dias
+                        </span>
+                        <div className="flex items-center justify-between mt-1">
                           <div className="text-lg font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
                             {p.name}
                           </div>
@@ -150,7 +154,7 @@ export default function Register() {
                         </div>
                         <div className="mt-3 text-2xl font-black tracking-tighter" style={{ fontFamily: "Cabinet Grotesk" }}>
                           {p.price > 0 ? `R$ ${p.price.toFixed(2).replace(".", ",")}` : "Grátis"}
-                          {p.price > 0 && <span className="text-xs font-normal opacity-70 ml-1">/mês</span>}
+                          {p.price > 0 && <span className="text-xs font-normal opacity-70 ml-1">/{p.period_days || 90} dias</span>}
                         </div>
                       </button>
                     );

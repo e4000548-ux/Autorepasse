@@ -637,6 +637,8 @@ function NotificationsTab({ onChanged }) {
 function SettingsTab() {
   const [pixKey, setPixKey] = useState("");
   const [holder, setHolder] = useState("");
+  const [city, setCity] = useState("");
+  const [payload, setPayload] = useState("");
   const [plans, setPlans] = useState([]);
   const [saving, setSaving] = useState(false);
   const [ok, setOk] = useState(false);
@@ -646,12 +648,14 @@ function SettingsTab() {
     api.get("/admin/settings").then(({ data }) => {
       setPixKey(data.pix_key || "");
       setHolder(data.pix_holder_name || "");
+      setCity(data.pix_city || "");
+      setPayload(data.pix_payload || "");
       setPlans(data.plans || []);
     });
   }, []);
 
   const setPlanField = (code, field, value) =>
-    setPlans((p) => p.map((pl) => (pl.code === code ? { ...pl, [field]: field === "name" ? value : Number(value) } : pl)));
+    setPlans((p) => p.map((pl) => (pl.code === code ? { ...pl, [field]: ["name", "period_label"].includes(field) ? value : Number(value) } : pl)));
 
   const planTestId = (code) => (code === "avulso" ? APANEL.settingsPlanAvulsoPrice : code === "loja" ? APANEL.settingsPlanLojaPrice : `apanel-settings-plan-${code}-price`);
 
@@ -659,7 +663,13 @@ function SettingsTab() {
     e.preventDefault();
     setSaving(true); setOk(false); setError("");
     try {
-      await api.put("/admin/settings", { pix_key: pixKey, pix_holder_name: holder, plans });
+      await api.put("/admin/settings", {
+        pix_key: pixKey,
+        pix_holder_name: holder,
+        pix_city: city,
+        pix_payload: payload,
+        plans,
+      });
       setOk(true); setTimeout(() => setOk(false), 2200);
     } catch (err) {
       setError(err?.response?.data?.detail || "Erro ao salvar.");
@@ -674,22 +684,43 @@ function SettingsTab() {
       <div className="bg-white border border-zinc-200 p-6">
         <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Recebimento PIX</div>
         <div className="mt-5 grid sm:grid-cols-2 gap-4">
-          <Field label="Chave PIX">
+          <Field label="Chave PIX (CNPJ/Email/Celular)">
             <input data-testid={APANEL.settingsPix} value={pixKey} onChange={(e) => setPixKey(e.target.value)} required
+              placeholder="Ex: 61.343.028/0001-16"
               className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
           </Field>
           <Field label="Titular da conta">
             <input data-testid={APANEL.settingsPixHolder} value={holder} onChange={(e) => setHolder(e.target.value)} required
+              placeholder="Ex: Rogerio Alves"
               className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
+          </Field>
+          <Field label="Cidade do titular">
+            <input data-testid="apanel-settings-pix-city" value={city} onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex: RIO DE JANEIRO"
+              className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label="PIX Copia e Cola (payload completo do QR Code)">
+            <textarea data-testid="apanel-settings-pix-payload" value={payload} onChange={(e) => setPayload(e.target.value)}
+              rows={3}
+              placeholder="00020126360014br.gov.bcb.pix..."
+              className="w-full p-3 border border-zinc-300 focus:border-black outline-none bg-white font-mono text-xs leading-relaxed" />
+            <div className="text-[11px] text-zinc-500 mt-1.5">
+              Cole aqui o payload completo do QR Code (gerado pelo banco). Sem ele, o QR mostra apenas a chave.
+            </div>
           </Field>
         </div>
       </div>
 
       <div className="bg-white border border-zinc-200 p-6">
-        <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Planos</div>
-        <div className="mt-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-xs uppercase tracking-[0.2em] font-bold text-zinc-500">Planos</div>
+          <span className="text-[10px] font-black uppercase tracking-wider bg-black text-white px-2 py-1">Trimestral</span>
+        </div>
+        <div className="mt-5 space-y-5">
           {plans.map((pl) => (
-            <div key={pl.code} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end border-b border-zinc-100 pb-4">
+            <div key={pl.code} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end border-b border-zinc-100 pb-4">
               <Field label="Nome do plano">
                 <input value={pl.name} onChange={(e) => setPlanField(pl.code, "name", e.target.value)}
                   className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
@@ -701,6 +732,11 @@ function SettingsTab() {
               </Field>
               <Field label="Limite de anúncios">
                 <input type="number" value={pl.ad_limit} onChange={(e) => setPlanField(pl.code, "ad_limit", e.target.value)}
+                  className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
+              </Field>
+              <Field label="Validade (dias)">
+                <input type="number" value={pl.period_days ?? 90}
+                  onChange={(e) => setPlanField(pl.code, "period_days", e.target.value)}
                   className="w-full h-12 px-4 border border-zinc-300 focus:border-black outline-none bg-white" />
               </Field>
             </div>

@@ -63,8 +63,8 @@ CATEGORIES = [
 ]
 
 DEFAULT_PLANS = [
-    {"code": "avulso", "name": "Avulso", "price": 39.90, "ad_limit": 1},
-    {"code": "loja", "name": "Loja", "price": 129.90, "ad_limit": 30},
+    {"code": "avulso", "name": "Avulso", "price": 29.90, "ad_limit": 1, "period_days": 90, "period_label": "Trimestral"},
+    {"code": "loja", "name": "Loja", "price": 250.00, "ad_limit": 30, "period_days": 90, "period_label": "Trimestral"},
 ]
 
 
@@ -304,6 +304,8 @@ class AdminVehicleUpdateIn(VehicleIn):
 class SettingsIn(BaseModel):
     pix_key: Optional[str] = None
     pix_holder_name: Optional[str] = None
+    pix_city: Optional[str] = None
+    pix_payload: Optional[str] = None
     plans: Optional[List[dict]] = None
 
 
@@ -373,7 +375,14 @@ async def vehicle_with_dealer(v: dict) -> dict:
 async def get_settings() -> dict:
     s = await db.settings.find_one({"id": "global"}, {"_id": 0})
     if not s:
-        s = {"id": "global", "pix_key": "stockauto@pix.com.br", "pix_holder_name": "StockAuto MVP", "plans": DEFAULT_PLANS}
+        s = {
+            "id": "global",
+            "pix_key": "61.343.028/0001-16",
+            "pix_holder_name": "Rogerio Alves",
+            "pix_city": "RIO DE JANEIRO",
+            "pix_payload": "00020126360014br.gov.bcb.pix0114613430280001165204000053039865802BR592561.343.028 Rogerio Alves 6014RIO DE JANEIRO62070503***63043DED",
+            "plans": DEFAULT_PLANS,
+        }
         await db.settings.insert_one(s)
     return s
 
@@ -464,7 +473,13 @@ async def list_categories():
 @api.get("/settings/public")
 async def public_settings():
     s = await get_settings()
-    return {"pix_key": s.get("pix_key"), "pix_holder_name": s.get("pix_holder_name"), "plans": s.get("plans", DEFAULT_PLANS)}
+    return {
+        "pix_key": s.get("pix_key"),
+        "pix_holder_name": s.get("pix_holder_name"),
+        "pix_city": s.get("pix_city"),
+        "pix_payload": s.get("pix_payload"),
+        "plans": s.get("plans", DEFAULT_PLANS),
+    }
 
 
 @api.get("/vehicles")
