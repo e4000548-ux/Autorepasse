@@ -13,18 +13,16 @@ Marketplace de veículos B2C com foco em Campo Grande/MS. Compradores chegam por
 - **Revendedor** — cadastra loja, paga via PIX, gerencia anúncios em /painel
 - **Admin** — modera anúncios/lojistas, configura PIX/planos, gerencia banners
 
-## Setup do Ambiente (08/Jan/2026)
-- Repo clonado em /app (preservando .git e .emergent)
-- `.env` recriados (placeholders dev):
-  - backend/.env → MONGO_URL local, JWT_SECRET dev, EMERGENT_LLM_KEY universal, ADMIN_EMAIL/ADMIN_PASSWORD padrão
-  - frontend/.env → REACT_APP_BACKEND_URL apontando para preview Kubernetes
-- Dependências instaladas: `pip install -r requirements.txt` + `yarn install`
-- Supervisor: backend + frontend + mongodb RUNNING
-- Seed automático no startup criou:
-  - 1 admin (admin@stockauto.com / Admin@123)
-  - 3 revendedores seed nacional + 2 de Campo Grande/MS (Dealer@123)
-  - 18 anúncios ativos (12 nacional + 6 Campo Grande)
-- Validação curl OK: login admin, /auth/me, listagem GET /api/vehicles (18 ativos), register + login dealer novo
+## Implementado (até 09/Jan/2026)
+- **[09/Jan] Marca d'água automática em fotos de veículos**:
+  - Logo enviada pelo cliente (PNG transparente) em `/app/backend/assets/watermark.png`
+  - Função `apply_watermark()` em `server.py` usando Pillow: redimensiona para 15% da largura, opacidade 60%, canto inferior direito, margem 2.5%
+  - Output sempre em JPEG progressivo, quality 88 (otimiza tamanho)
+  - Suporta orientação EXIF (rotaciona automaticamente fotos de celular)
+  - Aplicada apenas em `POST /api/dealer/uploads` (fotos de anúncios). Logos/capas dos revendedores e banners do admin **não recebem** marca (institucional)
+  - Cache em memória do PNG da logo (carregado 1x no primeiro upload)
+  - Fallback gracioso: se a marca falhar, foto original é salva sem quebrar o fluxo
+- Setup do ambiente em 08/Jan: repo clonado, .env recriados, deps instaladas, supervisor RUNNING
 
 ## Funcionalidades já presentes no repo
 - Auth JWT (register/login/logout/me) com cookies httpOnly

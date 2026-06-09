@@ -9,6 +9,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 import os
 import re
+import io
 import uuid
 import bcrypt
 import jwt
@@ -23,6 +24,7 @@ from fastapi.responses import PlainTextResponse, Response as FastAPIResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
+from PIL import Image
 
 # ============================================================================
 # CONFIG
@@ -222,7 +224,7 @@ def get_object(path: str):
     return r.content, r.headers.get("Content-Type", "application/octet-stream")
 
 
-async def upload_image_to_storage(file: UploadFile, owner_id: str) -> str:
+async def upload_image_to_storage(file: UploadFile, owner_id: str, watermark: bool = False) -> str:
     ext = (file.filename or "image.jpg").split(".")[-1].lower()
     if ext not in {"jpg", "jpeg", "png", "webp", "gif"}:
         ext = "jpg"
@@ -230,8 +232,80 @@ async def upload_image_to_storage(file: UploadFile, owner_id: str) -> str:
     data = await file.read()
     if len(data) > 8 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Imagem muito grande (máx 8 MB)")
-    result = put_object(path, data, file.content_type or f"image/{'jpeg' if ext=='jpg' else ext}")
+    if watermark:
+        try:
+            data, ext = apply_watermark(data)
+            path = f"{APP_NAME}/uploads/{owner_id}/{uuid.uuid4()}.{ext}"
+        except Exception as e:
+            logger.warning(f"Watermark failed, uploading original: {e}")
+    content_type = file.content_type or f"image/{'jpeg' if ext=='jpg' else ext}"
+    if watermark:
+        content_type = "image/jpeg" if ext == "jpg" else f"image/{ext}"
+    result = put_object(path, data, content_type)
     return result["path"]
+
+
+# ============================================================================
+# WATERMARK
+# ============================================================================
+WATERMARK_PATH = ROOT_DIR / "assets" / "watermark.png"
+_watermark_cache: Optional[Image.Image] = None
+
+
+def _get_watermark() -> Optional[Image.Image]:
+    global _watermark_cache
+    if _watermark_cache is not None:
+        return _watermark_cache
+    if not WATERMARK_PATH.exists():
+        logger.warning(f"Watermark file not found at {WATERMARK_PATH}")
+        return None
+    wm = Image.open(WATERMARK_PATH).convert("RGBA")
+    _watermark_cache = wm
+    return wm
+
+
+def apply_watermark(image_bytes: bytes, width_ratio: float = 0.15, opacity: float = 0.6, margin_ratio: float = 0.025) -> tuple[bytes, str]:
+    """
+    Aplica a marca d'água no canto inferior direito.
+    - width_ratio: largura da marca relativa à largura da foto (15% por padrão)
+    - opacity: opacidade da marca (0..1)
+    - margin_ratio: margem relativa à largura da foto
+    Retorna (bytes_jpeg, "jpg").
+    """
+    wm = _get_watermark()
+    if wm is None:
+        return image_bytes, "jpg"
+
+    base = Image.open(io.BytesIO(image_bytes))
+    # Aplica orientação EXIF se existir
+    try:
+        from PIL import ImageOps
+        base = ImageOps.exif_transpose(base)
+    except Exception:
+        pass
+    base = base.convert("RGB")
+
+    target_w = max(1, int(base.width * width_ratio))
+    ratio = target_w / wm.width
+    target_h = max(1, int(wm.height * ratio))
+    wm_resized = wm.resize((target_w, target_h), Image.LANCZOS)
+
+    # Aplica opacidade no canal alpha
+    if opacity < 1.0:
+        alpha = wm_resized.split()[-1].point(lambda a: int(a * opacity))
+        wm_resized.putalpha(alpha)
+
+    margin = int(base.width * margin_ratio)
+    pos = (base.width - target_w - margin, base.height - target_h - margin)
+
+    # Composita
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    layer.paste(wm_resized, pos, wm_resized)
+    out = Image.alpha_composite(base.convert("RGBA"), layer).convert("RGB")
+
+    buf = io.BytesIO()
+    out.save(buf, format="JPEG", quality=88, optimize=True, progressive=True)
+    return buf.getvalue(), "jpg"
 
 
 # ============================================================================
@@ -620,7 +694,7 @@ async def dealer_upload_cover(file: UploadFile = File(...), user: dict = Depends
 @api.post("/dealer/uploads")
 async def dealer_upload_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     require_dealer(user)
-    path = await upload_image_to_storage(file, user["id"])
+    path = await upload_image_to_storage(file, user["id"], watermark=True)
     return {"path": path}
 
 
@@ -668,7 +742,7 @@ async def dealer_create_vehicle(body: VehicleIn, user: dict = Depends(get_curren
         "read": False,
         "created_at": now_iso(),
     })
-    return {**doc, "_id": None}
+    return await db.vehicles.find_one({"id": vid}, {"_id": 0})
 
 
 @api.put("/dealer/vehicles/{vid}")
