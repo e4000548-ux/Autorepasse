@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /painel
+Disallow: /admin
+Disallow: /api/dealer/
+Disallow: /api/admin/
+
+Sitemap: https://stockauto.com.br/sitemap.xml
+Sitemap: https://stockauto.com.br/api/sitemap.xml

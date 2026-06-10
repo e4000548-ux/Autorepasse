@@ -1,7 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "@/lib/api";
 import VehicleCard from "@/components/VehicleCard";
+import SEO from "@/components/SEO";
 import { LISTING } from "@/constants/testIds";
 import { UF_STATES } from "@/lib/format";
 import { Search, SlidersHorizontal, X } from "lucide-react";
@@ -73,8 +75,21 @@ export default function Listing() {
     [categories, form.category]
   );
 
+  const seoTitle = activeCategory
+    ? `${activeCategory} à venda em Campo Grande - MS`
+    : "Veículos à venda em Campo Grande - MS";
+  const seoDesc = activeCategory
+    ? `${activeCategory} usados e seminovos em Campo Grande/MS. Compare preços, fotos e fale direto com os revendedores via WhatsApp pelo StockAuto.`
+    : "Carros, motos, camionetes, caminhões e mais à venda em Campo Grande/MS. Catálogo completo com contato direto via WhatsApp pelo StockAuto.";
+
   return (
     <div data-testid={LISTING.page}>
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical={`/veiculos${form.category ? `?category=${form.category}` : ""}`}
+        keywords={`${activeCategory || "veículos"} Campo Grande, ${activeCategory || "carros"} usados MS, comprar ${activeCategory || "veículo"} Campo Grande, StockAuto`}
+      />
       {/* PAGE HEADER */}
       <section className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-20 flex flex-col md:flex-row md:items-end md:justify-between gap-6">

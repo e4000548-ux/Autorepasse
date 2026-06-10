@@ -37,6 +37,7 @@ ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@stockauto.com")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin@123")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 APP_NAME = os.environ.get("APP_NAME", "stockauto")
+SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -458,6 +459,7 @@ async def get_settings() -> dict:
             "plans": DEFAULT_PLANS,
         }
         await db.settings.insert_one(s)
+        s.pop("_id", None)
     return s
 
 
@@ -1012,25 +1014,81 @@ async def admin_delete_banner(bid: str, user: dict = Depends(get_admin_user)):
 # ============================================================================
 # SEO: sitemap.xml + robots.txt
 # ============================================================================
+def _site_base(request: Request) -> str:
+    """Canonical public site URL. Uses SITE_URL env var when set (recommended for production),
+    falls back to the request origin (useful in dev)."""
+    if SITE_URL:
+        return SITE_URL
+    return str(request.base_url).rstrip("/")
+
+
 @api.get("/robots.txt", response_class=PlainTextResponse)
 async def robots_txt(request: Request):
-    base = str(request.base_url).rstrip("/")
-    return f"User-agent: *\nAllow: /\nSitemap: {base}/api/sitemap.xml\n"
+    base = _site_base(request)
+    return (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /painel\n"
+        "Disallow: /admin\n"
+        "Disallow: /api/dealer/\n"
+        "Disallow: /api/admin/\n"
+        f"Sitemap: {base}/api/sitemap.xml\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
 
 
 @api.get("/sitemap.xml")
 async def sitemap_xml(request: Request):
-    base = str(request.base_url).rstrip("/")
-    urls = [f"{base}/", f"{base}/veiculos"]
-    async for v in db.vehicles.find({"status": "active"}, {"slug": 1, "_id": 0}).limit(2000):
-        urls.append(f"{base}/veiculo/{v['slug']}")
+    base = _site_base(request)
+    today = datetime.now(timezone.utc).date().isoformat()
+
+    # Coleta URLs com lastmod e prioridade
+    entries: list[tuple[str, str, str, str]] = []  # (loc, lastmod, changefreq, priority)
+    entries.append((f"{base}/", today, "daily", "1.0"))
+    entries.append((f"{base}/veiculos", today, "daily", "0.9"))
+    entries.append((f"{base}/revendedores", today, "weekly", "0.8"))
+    entries.append((f"{base}/cadastro", today, "monthly", "0.5"))
+
+    # Categorias (filtros da listagem)
+    for c in CATEGORIES:
+        entries.append((f"{base}/veiculos?category={c['code']}", today, "daily", "0.7"))
+
+    # Veículos ativos
+    async for v in db.vehicles.find({"status": "active"}, {"slug": 1, "updated_at": 1, "_id": 0}).limit(5000):
+        lastmod = (v.get("updated_at") or today).split("T")[0]
+        entries.append((f"{base}/veiculo/{v['slug']}", lastmod, "weekly", "0.8"))
+
+    # Revendedores ativos
     async for d in db.users.find({"role": "dealer", "status": "active"}, {"slug": 1, "_id": 0}).limit(2000):
-        urls.append(f"{base}/revendedor/{d['slug']}")
-    body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for u in urls:
-        body += f"  <url><loc>{u}</loc></url>\n"
-    body += "</urlset>\n"
-    return FastAPIResponse(content=body, media_type="application/xml")
+        if d.get("slug"):
+            entries.append((f"{base}/revendedor/{d['slug']}", today, "weekly", "0.7"))
+
+    body = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for loc, lastmod, changefreq, priority in entries:
+        body.append(
+            "  <url>"
+            f"<loc>{loc}</loc>"
+            f"<lastmod>{lastmod}</lastmod>"
+            f"<changefreq>{changefreq}</changefreq>"
+            f"<priority>{priority}</priority>"
+            "</url>"
+        )
+    body.append("</urlset>")
+    return FastAPIResponse(content="\n".join(body), media_type="application/xml")
+
+
+# Schema.org JSON-LD payloads consumed by the frontend pages via fetch.
+@api.get("/seo/home")
+async def seo_home(request: Request):
+    base = _site_base(request)
+    vehicles_count = await db.vehicles.count_documents({"status": "active"})
+    dealers_count = await db.users.count_documents({"role": "dealer", "status": "active"})
+    return {
+        "site_url": base,
+        "vehicles_count": vehicles_count,
+        "dealers_count": dealers_count,
+    }
 
 
 # ============================================================================

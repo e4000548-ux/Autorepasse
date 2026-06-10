@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useCallback } from "react";
 import api, { fileUrl } from "@/lib/api";
 import PanelLayout from "@/components/PanelLayout";

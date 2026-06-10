@@ -1,6 +1,8 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api, { fileUrl } from "@/lib/api";
+import SEO from "@/components/SEO";
 import { MapPin, Star, Search, Building2 } from "lucide-react";
 import { UF_STATES } from "@/lib/format";
 
@@ -33,6 +35,12 @@ export default function DealerList() {
 
   return (
     <div>
+      <SEO
+        title="Revendedores de veículos em Campo Grande - MS"
+        description="Encontre revendedores verificados em Campo Grande/MS e região. Compare lojas, veja estoque atualizado e fale direto via WhatsApp pelo StockAuto."
+        canonical="/revendedores"
+        keywords="revendedores Campo Grande, lojas de carros Campo Grande MS, concessionárias Campo Grande, seminovos lojas MS"
+      />
       {/* HEADER */}
       <section className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">

@@ -34,7 +34,7 @@ export default function PendingApproval() {
       await navigator.clipboard.writeText(text);
       setter(true);
       setTimeout(() => setter(false), 1800);
-    } catch {}
+    } catch { /* clipboard unsupported */ }
   };
 
   const onCheck = async () => {

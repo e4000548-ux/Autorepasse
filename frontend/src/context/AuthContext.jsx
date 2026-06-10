@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 
@@ -35,7 +36,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch {}
+    try { await api.post("/auth/logout"); } catch { /* network error — local logout still proceeds */ }
     setUser(null);
   };
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import VehicleCard from "@/components/VehicleCard";
 import BannerCarousel from "@/components/BannerCarousel";
+import SEO, { SITE_URL } from "@/components/SEO";
 import { HOMEPAGE } from "@/constants/testIds";
 import { ArrowRight, Search, MapPin, Star } from "lucide-react";
 import { fileUrl } from "@/lib/api";
@@ -43,8 +44,50 @@ export default function Home() {
     navigate(`/veiculos${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
+  const homeJsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "StockAuto",
+      url: SITE_URL,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${SITE_URL}/veiculos?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "AutoDealer",
+      name: "StockAuto",
+      url: SITE_URL,
+      logo: `${SITE_URL}/logo-stockauto-dark.png`,
+      description:
+        "Marketplace de veículos em Campo Grande, MS — carros, motos, camionetes e caminhões direto com o revendedor.",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Campo Grande",
+        addressRegion: "MS",
+        addressCountry: "BR",
+      },
+      geo: { "@type": "GeoCoordinates", latitude: -20.4697, longitude: -54.6201 },
+      areaServed: {
+        "@type": "City",
+        name: "Campo Grande",
+        containedInPlace: { "@type": "State", name: "Mato Grosso do Sul" },
+      },
+    },
+  ];
+
   return (
     <div data-testid={HOMEPAGE.hero}>
+      <SEO
+        title="StockAuto — Comprar carros, motos e camionetes em Campo Grande, MS"
+        description="Marketplace de veículos em Campo Grande, MS. Compre direto do revendedor: carros, motos, camionetes e caminhões. Contato rápido via WhatsApp, sem comissão."
+        canonical="/"
+        keywords="carros usados Campo Grande, comprar carro Campo Grande MS, seminovos Campo Grande, motos Campo Grande, camionetes Campo Grande, revendedores Campo Grande, StockAuto"
+        jsonLd={homeJsonLd}
+      />
       {/* SEO H1 — visually hidden but read by Google & screen readers */}
       <h1 className="sr-only">
         StockAuto — Marketplace de veículos em Campo Grande, MS. Compre direto do revendedor:

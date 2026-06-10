@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api, { fileUrl } from "@/lib/api";
 import { brl, km, waLink, digits, txLabel, fuelLabel } from "@/lib/format";
 import WhatsAppButton, { WhatsAppIcon } from "@/components/WhatsAppButton";
+import SEO, { SITE_URL } from "@/components/SEO";
 import { DETAIL } from "@/constants/testIds";
 import { MapPin, Phone, Share2, Copy, ArrowLeft, Check, Calendar, Gauge, Fuel, Settings, Palette, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 
@@ -23,19 +25,11 @@ export default function VehicleDetail() {
       .catch((e) => setError(e?.response?.data?.detail || "Anúncio não encontrado."));
   }, [slug]);
 
-  // Set SEO title + meta description
+  // Set SEO title + meta description (kept for non-Helmet fallback / older bots)
   useEffect(() => {
     if (!v) return;
     const title = `${v.brand} ${v.model} ${v.year_model} em ${v.city} - ${v.uf} | StockAuto`;
     document.title = title;
-    const desc = `${v.brand} ${v.model} ${v.year_model} com ${km(v.km)} em ${v.city}/${v.uf}. ${brl(v.price)}. Fale direto no WhatsApp.`;
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "description");
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", desc);
   }, [v]);
 
   if (error) {
@@ -73,6 +67,70 @@ export default function VehicleDetail() {
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const shareMsg = `Olha esse ${title} ${v.year_model} por ${brl(v.price)} no StockAuto: ${shareUrl}`;
 
+  // SEO data
+  const seoTitle = `${v.brand} ${v.model} ${v.year_model} em ${v.city} - ${v.uf}`;
+  const seoDesc = `${v.brand} ${v.model}${v.version ? " " + v.version : ""} ${v.year_made}/${v.year_model}${
+    v.km ? `, ${km(v.km)}` : ""
+  }${v.color ? `, cor ${v.color}` : ""}, em ${v.city}/${v.uf}. ${
+    v.price ? brl(v.price) : "Consulte valor"
+  }. Fale direto no WhatsApp com ${dealer.store_name || "o revendedor"}.`;
+  const seoImage = photo ? fileUrl(photo) : undefined;
+  const canonical = `/veiculo/${v.slug || ""}`;
+
+  const vehicleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Vehicle",
+    name: `${v.brand} ${v.model}${v.version ? " " + v.version : ""} ${v.year_model}`,
+    description: v.description || seoDesc,
+    brand: { "@type": "Brand", name: v.brand },
+    model: v.model,
+    vehicleModelDate: String(v.year_model),
+    productionDate: String(v.year_made),
+    mileageFromOdometer: v.km ? { "@type": "QuantitativeValue", value: v.km, unitCode: "KMT" } : undefined,
+    fuelType: fuelLabel(v.fuel),
+    vehicleTransmission: txLabel(v.transmission),
+    color: v.color || undefined,
+    image: photos.map((p) => fileUrl(p)),
+    url: `${SITE_URL}${canonical}`,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "BRL",
+      price: v.price || undefined,
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/UsedCondition",
+      areaServed: { "@type": "City", name: v.city },
+      seller: dealer.store_name
+        ? {
+            "@type": "AutoDealer",
+            name: dealer.store_name,
+            telephone: dealer.phone || undefined,
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: dealer.city || v.city,
+              addressRegion: dealer.uf || v.uf,
+              addressCountry: "BR",
+            },
+          }
+        : undefined,
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Início", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Veículos", item: `${SITE_URL}/veiculos` },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: v.category,
+        item: `${SITE_URL}/veiculos?category=${v.category}`,
+      },
+      { "@type": "ListItem", position: 4, name: title, item: `${SITE_URL}${canonical}` },
+    ],
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -85,6 +143,14 @@ export default function VehicleDetail() {
 
   return (
     <div data-testid={DETAIL.page} className="pb-32 md:pb-16">
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical={canonical}
+        image={seoImage}
+        type="product"
+        jsonLd={[vehicleJsonLd, breadcrumbJsonLd]}
+      />
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 text-xs uppercase tracking-widest text-zinc-500 flex items-center gap-2">
         <Link to="/" className="hover:text-black">Início</Link>

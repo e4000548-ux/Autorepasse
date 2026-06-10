@@ -9,40 +9,100 @@
         <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/favicon-192.png" />
         <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
-        <meta name="description" content="StockAuto — As melhores ofertas de veículos de Campo Grande, MS em um só lugar. Carros, motos e camionetes direto com as revendas, contato via WhatsApp." />
+
+        <!-- Primary SEO -->
+        <title>StockAuto — Comprar carros, motos e camionetes em Campo Grande, MS</title>
+        <meta name="description" content="StockAuto — Marketplace de veículos em Campo Grande, MS. Compre direto do revendedor: carros, motos, camionetes, caminhões e mais. Contato rápido via WhatsApp, sem comissão." />
+        <meta name="keywords" content="carros usados Campo Grande, comprar carro Campo Grande MS, seminovos Campo Grande, motos Campo Grande, camionetes Campo Grande, revendedores Campo Grande, StockAuto, marketplace veículos MS" />
+        <meta name="author" content="StockAuto" />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="googlebot" content="index, follow" />
+        <meta name="language" content="pt-BR" />
+        <meta name="geo.region" content="BR-MS" />
+        <meta name="geo.placename" content="Campo Grande" />
+        <meta name="geo.position" content="-20.4697;-54.6201" />
+        <meta name="ICBM" content="-20.4697, -54.6201" />
+
+        <!-- Default canonical (overridden per-route by react-helmet-async) -->
+        <!-- Google Search Console verification (preencher com o código depois de criar a conta) -->
+        <!-- <meta name="google-site-verification" content="SEU_CODIGO_AQUI" /> -->
+
+        <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="StockAuto" />
+        <meta property="og:locale" content="pt_BR" />
+        <meta property="og:title" content="StockAuto — Comprar carros, motos e camionetes em Campo Grande, MS" />
+        <meta property="og:description" content="Marketplace de veículos em Campo Grande, MS. Compre direto do revendedor: carros, motos, camionetes e mais. Contato rápido via WhatsApp." />
+        <meta property="og:url" content="https://stockauto.com.br/" />
+        <meta property="og:image" content="https://stockauto.com.br/og-default.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="StockAuto — Marketplace de veículos em Campo Grande, MS" />
+
+        <!-- Twitter Cards -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="StockAuto — Veículos em Campo Grande, MS" />
+        <meta name="twitter:description" content="Compre direto do revendedor em Campo Grande/MS. Carros, motos e camionetes com contato via WhatsApp." />
+        <meta name="twitter:image" content="https://stockauto.com.br/og-default.jpg" />
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
-        <!--
-        manifest.json provides metadata used when your web app is installed on a
-        user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-        -->
-        <!--
-        Notice the use of %PUBLIC_URL% in the tags above.
-        It will be replaced with the URL of the `public` folder during the build.
-        Only files inside the `public` folder can be referenced from the HTML.
 
-        Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-        work correctly both with client-side routing and a non-root public URL.
-        Learn how to configure a non-root public URL by running `npm run build`.
-        -->
-        <title>StockAuto — As melhores ofertas de Campo Grande, MS</title>
+        <!-- JSON-LD: Organization + LocalBusiness (Campo Grande) -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "AutoDealer",
+          "name": "StockAuto",
+          "url": "https://stockauto.com.br",
+          "logo": "https://stockauto.com.br/logo-stockauto-dark.png",
+          "image": "https://stockauto.com.br/og-default.jpg",
+          "description": "Marketplace de veículos em Campo Grande, MS — carros, motos, camionetes e caminhões direto com o revendedor.",
+          "areaServed": {
+            "@type": "City",
+            "name": "Campo Grande",
+            "containedInPlace": {
+              "@type": "State",
+              "name": "Mato Grosso do Sul"
+            }
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Campo Grande",
+            "addressRegion": "MS",
+            "addressCountry": "BR"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": -20.4697,
+            "longitude": -54.6201
+          },
+          "sameAs": []
+        }
+        </script>
+
+        <!-- JSON-LD: WebSite with SearchAction (mostra caixinha de busca no Google) -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "StockAuto",
+          "url": "https://stockauto.com.br",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://stockauto.com.br/veiculos?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+        </script>
+
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root"></div>
-        <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
         <a
             id="emergent-badge"
             target="_blank"
@@ -152,7 +212,7 @@
             })(document, window.posthog || []);
             posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
                 api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well,
+                person_profiles: "identified_only",
                 session_recording: {
                     recordCrossOriginIframes: true,
                     capturePerformance: false,

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { fileUrl } from "@/lib/api";

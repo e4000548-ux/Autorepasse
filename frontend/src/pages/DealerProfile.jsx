@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api, { fileUrl } from "@/lib/api";
 import VehicleCard from "@/components/VehicleCard";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import SEO, { SITE_URL } from "@/components/SEO";
 import { DEALER } from "@/constants/testIds";
 import { MapPin, Phone, ArrowLeft, Building2 } from "lucide-react";
 import { digits } from "@/lib/format";
@@ -57,8 +59,58 @@ export default function DealerProfile() {
     );
   }
 
+  const canonical = `/revendedor/${dealer.slug || slug}`;
+  const seoTitle = `${dealer.store_name} — Revendedor em ${dealer.city}/${dealer.uf}`;
+  const seoDesc = (dealer.description && dealer.description.slice(0, 180)) ||
+    `Conheça ${dealer.store_name}, revendedor de veículos em ${dealer.city}/${dealer.uf}. ${vehicles.length} ${
+      vehicles.length === 1 ? "veículo disponível" : "veículos disponíveis"
+    }. Contato direto via WhatsApp pelo StockAuto.`;
+  const seoImage = dealer.cover_path
+    ? fileUrl(dealer.cover_path)
+    : dealer.logo_path
+    ? fileUrl(dealer.logo_path)
+    : undefined;
+
+  const dealerJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AutoDealer",
+    name: dealer.store_name,
+    url: `${SITE_URL}${canonical}`,
+    image: seoImage,
+    logo: dealer.logo_path ? fileUrl(dealer.logo_path) : undefined,
+    description: dealer.description || seoDesc,
+    telephone: dealer.phone || undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: dealer.address || undefined,
+      addressLocality: dealer.city,
+      addressRegion: dealer.uf,
+      addressCountry: "BR",
+    },
+    areaServed: { "@type": "City", name: dealer.city },
+    sameAs: dealer.whatsapp ? [`https://wa.me/${digits(dealer.whatsapp)}`] : undefined,
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Início", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Revendedores", item: `${SITE_URL}/revendedores` },
+      { "@type": "ListItem", position: 3, name: dealer.store_name, item: `${SITE_URL}${canonical}` },
+    ],
+  };
+
   return (
     <div data-testid={DEALER.page}>
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical={canonical}
+        image={seoImage}
+        type="profile"
+        jsonLd={[dealerJsonLd, breadcrumbJsonLd]}
+      />
       {/* COVER */}
       <div data-testid={DEALER.cover} className="relative h-48 md:h-72 bg-black overflow-hidden">
         {dealer.cover_path ? (
