@@ -660,6 +660,7 @@ async def list_repasse_vehicles(
     brand: Optional[str] = None,
     uf: Optional[str] = None,
     city: Optional[str] = None,
+    since_hours: Optional[int] = None,
     limit: int = 60,
     skip: int = 0,
     user: dict = Depends(get_current_user),
@@ -674,6 +675,9 @@ async def list_repasse_vehicles(
         filt["uf"] = uf.upper()
     if city:
         filt["city"] = {"$regex": re.escape(city), "$options": "i"}
+    if since_hours and since_hours > 0:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
+        filt["created_at"] = {"$gte": cutoff}
     if q:
         rx = re.compile(re.escape(q), re.IGNORECASE)
         filt["$or"] = [{"brand": rx}, {"model": rx}, {"version": rx}, {"description": rx}, {"city": rx}]

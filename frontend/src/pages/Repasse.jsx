@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import RepasseCard from "@/components/RepasseCard";
 import SEO from "@/components/SEO";
 import { UF_LIST } from "@/lib/format";
-import { Search, X, Lock } from "lucide-react";
+import { Search, X, Lock, Sparkles } from "lucide-react";
 
 const FIELDS = ["q", "category", "brand", "uf", "city"];
 
@@ -26,9 +26,15 @@ export default function Repasse() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(() => emptyForm(sp));
+  const [recent, setRecent] = useState([]);
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data)).catch(() => {});
+    // Feed of latest ads in the past 24h (max 5)
+    api
+      .get("/repasse/vehicles", { params: { since_hours: 24, limit: 5 } })
+      .then((r) => setRecent(r.data.items || []))
+      .catch(() => setRecent([]));
   }, []);
 
   useEffect(() => {
@@ -68,6 +74,7 @@ export default function Repasse() {
     () => FIELDS.filter((k) => (sp.get(k) || "").trim() !== ""),
     [sp]
   );
+  const hasFilters = activeFilters.length > 0;
 
   return (
     <div data-testid="repasse-page">
@@ -174,13 +181,39 @@ export default function Repasse() {
         </div>
       </section>
 
+      {/* RECENT FEED (last 24h) — só aparece se houver itens recentes e sem filtros */}
+      {recent.length > 0 && !hasFilters && (
+        <section className="border-b border-zinc-200 bg-gradient-to-b from-[#FFF8EC] to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center gap-2 mb-5">
+              <Sparkles size={18} className="text-[#F5A623]" />
+              <div className="text-xs uppercase tracking-[0.3em] font-black text-zinc-700">
+                Novidades — últimas 24h
+              </div>
+              <span className="text-xs font-bold uppercase tracking-tight bg-[#F5A623] text-black px-2 py-0.5">
+                {recent.length}
+              </span>
+            </div>
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
+              data-testid="repasse-recent-feed"
+            >
+              {recent.map((v) => (
+                <RepasseCard key={v.id} v={v} testid={`repasse-recent-${v.id}`} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* LISTING */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex items-baseline justify-between mb-6">
           <div className="text-xs uppercase tracking-[0.3em] font-bold text-zinc-500">
-            {loading ? "Carregando…" : `${total} ofertas no hub`}
+            {loading ? "Carregando…" : `${total} ${total === 1 ? "oferta" : "ofertas"} no hub`}
           </div>
-          {activeFilters.length > 0 && (
+          {hasFilters && (
             <div className="text-xs text-zinc-500">
               {activeFilters.length} filtro{activeFilters.length > 1 ? "s" : ""} aplicado{activeFilters.length > 1 ? "s" : ""}
             </div>
@@ -202,7 +235,7 @@ export default function Repasse() {
               Nenhuma oferta de repasse no momento
             </div>
             <div className="mt-3 text-sm text-zinc-500 max-w-md mx-auto">
-              {activeFilters.length > 0
+              {hasFilters
                 ? "Ajuste os filtros ou limpe-os para ver todas as ofertas disponíveis."
                 : "Volte em breve. Você também pode anunciar um repasse pelo seu painel."}
             </div>
