@@ -38,6 +38,9 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Admin@123")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 APP_NAME = os.environ.get("APP_NAME", "stockauto")
 SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
+# Demo seed: criar revendedores e veículos de exemplo no startup.
+# Default = false. Active manualmente com SEED_DEMO_DATA=true para testes.
+SEED_DEMO_DATA = os.environ.get("SEED_DEMO_DATA", "false").lower() in {"1", "true", "yes"}
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -1297,9 +1300,15 @@ async def on_startup():
     await db.vehicles.create_index("dealer_id")
     await db.vehicles.create_index([("category", 1), ("uf", 1)])
     init_storage()
-    await seed_admin()
-    await seed_demo()
-    await seed_campo_grande()
+    await seed_admin()  # Admin é necessário para login, sempre executado
+    # Demo seeds (revendedores fictícios + veículos de exemplo) só rodam quando
+    # SEED_DEMO_DATA=true no .env. Em produção fica off para preservar dados reais.
+    if SEED_DEMO_DATA:
+        logger.info("SEED_DEMO_DATA=true — populating demo dealers + vehicles")
+        await seed_demo()
+        await seed_campo_grande()
+    else:
+        logger.info("SEED_DEMO_DATA off — skipping demo seeds (production behavior)")
     await normalize_vehicle_choices()
     await get_settings()
 
