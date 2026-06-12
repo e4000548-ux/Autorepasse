@@ -16,6 +16,37 @@ Marketplace de veículos B2C com foco em Campo Grande/MS. Compradores chegam por
 
 ## Implementado
 
+### 12/Jan/2026 — Hub de Repasse B2B (Exclusivo Lojistas)
+- **Novo modelo de dados** em `vehicles`:
+  - `ad_type`: `"public"` (default) | `"repasse"` — separa anúncios públicos dos B2B
+  - `fipe_price`: opcional, valor FIPE de referência (obrigatório quando ad_type=repasse)
+  - `price` é reutilizado como valor de oferta/repasse quando ad_type=repasse
+- **Endpoints novos**:
+  - `GET /api/repasse/vehicles` — listagem com auth obrigatória (dealer/admin)
+  - `GET /api/repasse/vehicles/{slug}` — detalhe com auth obrigatória
+  - `GET /api/admin/vehicles?ad_type=repasse` — admin filtra por tipo
+  - Stats `admin/stats` agora expõe `repasse_active` e `repasse_pending`
+- **Isolamento público**:
+  - `GET /api/vehicles` (lista pública) **exclui** ad_type=repasse
+  - `GET /api/vehicles/{slug}` retorna 404 se repasse
+  - Sitemap.xml também exclui repasse (não indexa)
+- **Validações backend**: ad_type=repasse exige `fipe_price > 0` e `price > 0` (HTTP 400 se faltar)
+- **Frontend**:
+  - Nova rota `/repasse` (lista) + `/repasse/:slug` (detalhe), ambas com `ProtectedRoute roles=["dealer","admin"]`
+  - `ProtectedRoute` agora aceita `roles` (array) além do `role` legado
+  - Novo componente `RepasseCard.jsx`: borda dourada (#F5A623), selo "REPASSE B2B", FIPE riscado vs Oferta destacada, margem calculada (R$ + %)
+  - Página `Repasse.jsx`: hero preto+dourado com tag "ÁREA RESTRITA", filtros, listagem
+  - Página `RepasseDetail.jsx`: galeria, box dourado FIPE/Oferta/Margem, **botão WhatsApp** com mensagem exata "Olá, vi seu veículo no Repasse do StockAuto e tenho interesse na parceria."
+  - `VehicleForm.jsx`: toggle visual no topo "Classificado Público" vs "Repasse B2B"; quando Repasse, mostra campo "Valor Tabela FIPE" obrigatório
+  - `DealerPanel.jsx`: badge "Repasse B2B" nas linhas + atalho "Ver Hub de Repasse" no header
+  - `AdminPanel.jsx`: novo filtro `ad_type`, borda dourada nas linhas repasse, badge "Repasse B2B", botão **Excluir definitivo** disponível para todos os anúncios (admin)
+  - `Layout.jsx`: link "REPASSE" em dourado no nav, visível apenas para dealer/admin (desktop + mobile)
+  - SEO: páginas repasse com `noindex` (não vão pra Google)
+
+### 11/Jan/2026 — Desligamento do seed automático
+- `SEED_DEMO_DATA` env var (default `false`) controla criação de dados fictícios no startup
+- Em produção, restart não recria dealers/veículos fictícios — apenas admin é garantido
+
 ### 10/Jan/2026 — SEO Local Campo Grande/MS completo
 - **robots.txt** estático em `/robots.txt` + dinâmico em `/api/robots.txt`. Disallow para `/painel`, `/admin`, `/api/dealer/`, `/api/admin/`
 - **sitemap.xml** em `/sitemap.xml` (índice) → aponta para `/api/sitemap.xml` (dinâmico, 32+ URLs)

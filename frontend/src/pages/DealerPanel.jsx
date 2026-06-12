@@ -37,14 +37,23 @@ export default function DealerPanel() {
             {user.city}/{user.uf} · Plano <span className="font-bold">{user.plan_name}</span> · Limite {user.plan_ad_limit} anúncios
           </div>
         </div>
-        <Link
-          to={`/revendedor/${user.slug}`}
-          target="_blank"
-          rel="noreferrer"
-          className="self-start md:self-auto text-xs font-bold uppercase tracking-tight border-b-2 border-black hover:text-[#FF3B30] hover:border-[#FF3B30]"
-        >
-          Ver mini site público →
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            to="/repasse"
+            data-testid="dealer-panel-repasse-link"
+            className="self-start md:self-auto text-xs font-bold uppercase tracking-tight border-b-2 border-[#F5A623] text-[#B5820E] hover:text-[#F5A623]"
+          >
+            Ver Hub de Repasse →
+          </Link>
+          <Link
+            to={`/revendedor/${user.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="self-start md:self-auto text-xs font-bold uppercase tracking-tight border-b-2 border-black hover:text-[#FF3B30] hover:border-[#FF3B30]"
+          >
+            Ver mini site público →
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8 border-b border-zinc-200 flex gap-1 overflow-x-auto">
@@ -146,11 +155,23 @@ function VehiclesTab({ user }) {
                     {v.brand} {v.model} <span className="text-zinc-500 font-normal">{v.version}</span>
                   </div>
                   <Badge status={v.status} />
+                  {v.ad_type === "repasse" && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-[#FFF8EC] text-[#8A5F0D] border border-[#F5A623]">
+                      Repasse B2B
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-zinc-500 mt-1">
                   {v.year_made}/{v.year_model} · {km(v.km)} · {v.city}/{v.uf}
                 </div>
-                <div className="text-sm font-bold mt-1">{brl(v.price)}</div>
+                {v.ad_type === "repasse" ? (
+                  <div className="text-sm mt-1 flex items-center gap-2">
+                    <span className="text-zinc-500 line-through">FIPE {brl(v.fipe_price)}</span>
+                    <span className="font-bold text-[#B5820E]">Oferta {brl(v.price)}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm font-bold mt-1">{brl(v.price)}</div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button

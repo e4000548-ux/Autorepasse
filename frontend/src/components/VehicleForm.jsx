@@ -21,6 +21,8 @@ const empty = {
   price: "",
   description: "",
   photos: [],
+  ad_type: "public",
+  fipe_price: "",
 };
 
 export default function VehicleForm({ initial, onClose, onSaved }) {
@@ -47,6 +49,11 @@ export default function VehicleForm({ initial, onClose, onSaved }) {
         year_model: Number(data.year_model),
         km: data.km === "" || data.km === null ? null : Number(data.km),
         price: data.price === "" || data.price === null ? null : Number(data.price),
+        fipe_price:
+          data.fipe_price === "" || data.fipe_price === null || data.fipe_price === undefined
+            ? null
+            : Number(data.fipe_price),
+        ad_type: data.ad_type === "repasse" ? "repasse" : "public",
         uf: (data.uf || "").toUpperCase(),
       };
       let res;
@@ -87,6 +94,55 @@ export default function VehicleForm({ initial, onClose, onSaved }) {
               {error}
             </div>
           )}
+
+          {/* Ad type toggle: Public vs Repasse B2B */}
+          <div>
+            <div className="text-xs uppercase tracking-widest font-bold text-zinc-700 mb-2">
+              Tipo de anúncio
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                data-testid="vehicle-form-adtype-public"
+                onClick={() => set("ad_type", "public")}
+                className={`text-left p-4 border-2 transition-colors ${
+                  data.ad_type !== "repasse"
+                    ? "border-black bg-zinc-50"
+                    : "border-zinc-200 hover:border-zinc-400"
+                }`}
+              >
+                <div className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                  Padrão
+                </div>
+                <div className="mt-1 font-black tracking-tight" style={{ fontFamily: "Cabinet Grotesk" }}>
+                  Classificado Público
+                </div>
+                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                  Aparece na home, busca pública e Google. Vende para o consumidor final.
+                </div>
+              </button>
+              <button
+                type="button"
+                data-testid="vehicle-form-adtype-repasse"
+                onClick={() => set("ad_type", "repasse")}
+                className={`text-left p-4 border-2 transition-colors ${
+                  data.ad_type === "repasse"
+                    ? "border-[#F5A623] bg-[#FFF8EC]"
+                    : "border-zinc-200 hover:border-zinc-400"
+                }`}
+              >
+                <div className="text-[10px] uppercase tracking-widest font-bold text-[#8A5F0D]">
+                  B2B
+                </div>
+                <div className="mt-1 font-black tracking-tight" style={{ fontFamily: "Cabinet Grotesk" }}>
+                  Repasse entre Lojistas
+                </div>
+                <div className="text-xs text-zinc-500 mt-1 leading-relaxed">
+                  Visível apenas no Hub. Não aparece publicamente. Vende para outras revendas.
+                </div>
+              </button>
+            </div>
+          </div>
 
           <div>
             <div className="text-xs uppercase tracking-widest font-bold text-zinc-700 mb-2">Fotos</div>
@@ -178,9 +234,18 @@ export default function VehicleForm({ initial, onClose, onSaved }) {
                 {UF_LIST.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
               </select>
             </Field>
-            <Field label="Preço — vazio = Consultar Valor">
+            <Field label={data.ad_type === "repasse" ? "Valor de Repasse/Oferta — obrigatório" : "Preço — vazio = Consultar Valor"}>
               <CurrencyInput testid={DPANEL.vehicleFormPrice} value={data.price} onChange={(v) => set("price", v)} />
             </Field>
+            {data.ad_type === "repasse" && (
+              <Field label="Valor Tabela FIPE — obrigatório">
+                <CurrencyInput
+                  testid="vehicle-form-fipe-price"
+                  value={data.fipe_price}
+                  onChange={(v) => set("fipe_price", v)}
+                />
+              </Field>
+            )}
           </div>
 
           <Field label="Descrição">

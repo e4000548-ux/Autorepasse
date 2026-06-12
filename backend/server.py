@@ -356,9 +356,12 @@ class VehicleIn(BaseModel):
     color: Optional[str] = ""
     city: str
     uf: str
-    price: Optional[float] = None  # None => "Consultar Valor"
+    price: Optional[float] = None  # None => "Consultar Valor". For repasse, this is the offer/repasse price.
     description: Optional[str] = ""
     photos: Optional[List[str]] = []  # storage paths
+    # Repasse B2B fields ------------------------------------------------------
+    ad_type: Literal["public", "repasse"] = "public"
+    fipe_price: Optional[float] = None  # FIPE reference value, only used when ad_type == "repasse"
 
 
 class AdminUserUpdateIn(BaseModel):
@@ -581,7 +584,8 @@ async def list_vehicles(
     limit: int = 30,
     skip: int = 0,
 ):
-    filt: dict = {"status": "active"}
+    # Public listing — excludes repasse (B2B) ads
+    filt: dict = {"status": "active", "ad_type": {"$ne": "repasse"}}
     if category:
         filt["category"] = category
     if brand:
@@ -627,9 +631,69 @@ async def list_vehicles(
 
 @api.get("/vehicles/{slug_or_id}")
 async def get_vehicle(slug_or_id: str):
-    v = await db.vehicles.find_one({"$or": [{"slug": slug_or_id}, {"id": slug_or_id}], "status": "active"}, {"_id": 0})
+    # Public detail — repasse (B2B) ads are not exposed here
+    v = await db.vehicles.find_one(
+        {"$or": [{"slug": slug_or_id}, {"id": slug_or_id}], "status": "active", "ad_type": {"$ne": "repasse"}},
+        {"_id": 0},
+    )
     if not v:
         raise HTTPException(status_code=404, detail="Anúncio não encontrado")
+    return await vehicle_with_dealer(v)
+
+
+# ============================================================================
+# REPASSE (B2B) — restricted to authenticated dealers and admins
+# ============================================================================
+def require_repasse_access(user: dict):
+    role = user.get("role")
+    if role not in {"dealer", "admin"}:
+        raise HTTPException(status_code=403, detail="Acesso restrito a revendedores")
+    if role == "dealer" and user.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Sua conta ainda não foi liberada pelo administrador.")
+    return user
+
+
+@api.get("/repasse/vehicles")
+async def list_repasse_vehicles(
+    q: Optional[str] = None,
+    category: Optional[str] = None,
+    brand: Optional[str] = None,
+    uf: Optional[str] = None,
+    city: Optional[str] = None,
+    limit: int = 60,
+    skip: int = 0,
+    user: dict = Depends(get_current_user),
+):
+    require_repasse_access(user)
+    filt: dict = {"status": "active", "ad_type": "repasse"}
+    if category:
+        filt["category"] = category
+    if brand:
+        filt["brand"] = {"$regex": f"^{re.escape(brand)}$", "$options": "i"}
+    if uf:
+        filt["uf"] = uf.upper()
+    if city:
+        filt["city"] = {"$regex": re.escape(city), "$options": "i"}
+    if q:
+        rx = re.compile(re.escape(q), re.IGNORECASE)
+        filt["$or"] = [{"brand": rx}, {"model": rx}, {"version": rx}, {"description": rx}, {"city": rx}]
+    cur = db.vehicles.find(filt, {"_id": 0}).sort("created_at", -1).skip(skip).limit(min(limit, 100))
+    items = []
+    async for v in cur:
+        items.append(await vehicle_with_dealer(v))
+    total = await db.vehicles.count_documents(filt)
+    return {"items": items, "total": total}
+
+
+@api.get("/repasse/vehicles/{slug_or_id}")
+async def get_repasse_vehicle(slug_or_id: str, user: dict = Depends(get_current_user)):
+    require_repasse_access(user)
+    v = await db.vehicles.find_one(
+        {"$or": [{"slug": slug_or_id}, {"id": slug_or_id}], "status": "active", "ad_type": "repasse"},
+        {"_id": 0},
+    )
+    if not v:
+        raise HTTPException(status_code=404, detail="Anúncio de repasse não encontrado")
     return await vehicle_with_dealer(v)
 
 
@@ -719,6 +783,12 @@ async def dealer_create_vehicle(body: VehicleIn, user: dict = Depends(get_curren
     require_dealer(user)
     if user.get("status") != "active":
         raise HTTPException(status_code=403, detail="Sua conta ainda não foi liberada pelo administrador.")
+    # Repasse-specific validations
+    if body.ad_type == "repasse":
+        if body.fipe_price is None or body.fipe_price <= 0:
+            raise HTTPException(status_code=400, detail="Informe o Valor da Tabela FIPE para anúncios de Repasse.")
+        if body.price is None or body.price <= 0:
+            raise HTTPException(status_code=400, detail="Informe o Valor de Repasse/Oferta para anúncios de Repasse.")
     count = await db.vehicles.count_documents({"dealer_id": user["id"], "status": {"$in": ["active", "pending"]}})
     if count >= int(user.get("plan_ad_limit", 1)):
         raise HTTPException(status_code=400, detail=f"Limite do plano atingido ({user.get('plan_ad_limit')} anúncios).")
@@ -756,6 +826,11 @@ async def dealer_update_vehicle(vid: str, body: VehicleIn, user: dict = Depends(
     v = await db.vehicles.find_one({"id": vid, "dealer_id": user["id"]})
     if not v:
         raise HTTPException(status_code=404, detail="Anúncio não encontrado")
+    if body.ad_type == "repasse":
+        if body.fipe_price is None or body.fipe_price <= 0:
+            raise HTTPException(status_code=400, detail="Informe o Valor da Tabela FIPE para anúncios de Repasse.")
+        if body.price is None or body.price <= 0:
+            raise HTTPException(status_code=400, detail="Informe o Valor de Repasse/Oferta para anúncios de Repasse.")
     update = body.model_dump()
     update["uf"] = (update.get("uf") or "").upper()
     update["main_photo"] = (update.get("photos") or [None])[0]
@@ -828,10 +903,16 @@ async def admin_delete_user(uid: str, user: dict = Depends(get_admin_user)):
 
 
 @api.get("/admin/vehicles")
-async def admin_vehicles(status: Optional[str] = None, user: dict = Depends(get_admin_user)):
+async def admin_vehicles(
+    status: Optional[str] = None,
+    ad_type: Optional[str] = None,
+    user: dict = Depends(get_admin_user),
+):
     filt: dict = {}
     if status:
         filt["status"] = status
+    if ad_type:
+        filt["ad_type"] = ad_type
     cur = db.vehicles.find(filt, {"_id": 0}).sort("created_at", -1)
     out = []
     async for v in cur:
@@ -897,6 +978,8 @@ async def admin_stats(user: dict = Depends(get_admin_user)):
         "vehicles_total": await db.vehicles.count_documents({"status": {"$ne": "deleted"}}),
         "vehicles_active": await db.vehicles.count_documents({"status": "active"}),
         "vehicles_pending": await db.vehicles.count_documents({"status": "pending"}),
+        "repasse_active": await db.vehicles.count_documents({"status": "active", "ad_type": "repasse"}),
+        "repasse_pending": await db.vehicles.count_documents({"status": "pending", "ad_type": "repasse"}),
         "notifications_unread": await db.notifications.count_documents({"read": False}),
     }
 
@@ -1056,8 +1139,11 @@ async def sitemap_xml(request: Request):
     for c in CATEGORIES:
         entries.append((f"{base}/veiculos?category={c['code']}", today, "daily", "0.7"))
 
-    # Veículos ativos
-    async for v in db.vehicles.find({"status": "active"}, {"slug": 1, "updated_at": 1, "_id": 0}).limit(5000):
+    # Veículos ativos (excluindo Repasse — B2B fica fora do índice público)
+    async for v in db.vehicles.find(
+        {"status": "active", "ad_type": {"$ne": "repasse"}},
+        {"slug": 1, "updated_at": 1, "_id": 0},
+    ).limit(5000):
         lastmod = (v.get("updated_at") or today).split("T")[0]
         entries.append((f"{base}/veiculo/{v['slug']}", lastmod, "weekly", "0.8"))
 

@@ -13,6 +13,8 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import DealerPanel from "@/pages/DealerPanel";
 import AdminPanel from "@/pages/AdminPanel";
+import Repasse from "@/pages/Repasse";
+import RepasseDetail from "@/pages/RepasseDetail";
 import ComingSoon from "@/pages/ComingSoon";
 
 function ScrollToTop() {
@@ -52,6 +54,22 @@ function App() {
                 element={
                   <ProtectedRoute role="admin">
                     <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/repasse"
+                element={
+                  <ProtectedRoute roles={["dealer", "admin"]}>
+                    <Repasse />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/repasse/:slug"
+                element={
+                  <ProtectedRoute roles={["dealer", "admin"]}>
+                    <RepasseDetail />
                   </ProtectedRoute>
                 }
               />

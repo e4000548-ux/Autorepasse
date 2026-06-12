@@ -241,16 +241,25 @@ function VehiclesTab({ onChanged }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const load = useCallback(() => {
     setLoading(true);
-    const params = filter === "all" ? {} : { status: filter };
+    const params = {};
+    if (filter !== "all") params.status = filter;
+    if (typeFilter !== "all") params.ad_type = typeFilter;
     api.get("/admin/vehicles", { params }).then(({ data }) => setItems(data)).finally(() => setLoading(false));
-  }, [filter]);
+  }, [filter, typeFilter]);
   useEffect(() => { load(); }, [load]);
 
   const setStatus = async (vid, status) => {
     await api.put(`/admin/vehicles/${vid}/status`, { status });
+    load(); onChanged?.();
+  };
+
+  const deleteVehicle = async (vid) => {
+    if (!window.confirm("Excluir este anúncio definitivamente? Esta ação remove o anúncio do banco e não pode ser desfeita.")) return;
+    await api.delete(`/admin/vehicles/${vid}`);
     load(); onChanged?.();
   };
 
@@ -267,6 +276,18 @@ function VehiclesTab({ onChanged }) {
         value={filter}
         onChange={setFilter}
       />
+      <div className="mt-3">
+        <FilterPills
+          testId="admin-vehicle-type-filter"
+          options={[
+            { k: "all", label: "Todos os tipos" },
+            { k: "public", label: "Público" },
+            { k: "repasse", label: "Repasse B2B" },
+          ]}
+          value={typeFilter}
+          onChange={setTypeFilter}
+        />
+      </div>
 
       {loading ? (
         <div className="mt-8 text-zinc-500">Carregando…</div>
@@ -276,8 +297,9 @@ function VehiclesTab({ onChanged }) {
         <div className="mt-6 border border-zinc-200 divide-y divide-zinc-200 bg-white">
           {items.map((v) => {
             const s = VEH_STATUS[v.status] || VEH_STATUS.pending;
+            const isRepasse = v.ad_type === "repasse";
             return (
-              <div key={v.id} data-testid={APANEL.vehicleRow(v.id)} className="p-4 flex flex-col md:flex-row md:items-center gap-4 hover:bg-zinc-50">
+              <div key={v.id} data-testid={APANEL.vehicleRow(v.id)} className={`p-4 flex flex-col md:flex-row md:items-center gap-4 hover:bg-zinc-50 ${isRepasse ? "border-l-4 border-l-[#F5A623]" : ""}`}>
                 <div className="w-20 h-16 bg-zinc-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {v.main_photo ? <img src={fileUrl(v.main_photo)} alt={`${v.brand} ${v.model}`} className="w-full h-full object-cover" /> : <ImageIcon size={18} className="text-zinc-400" />}
                 </div>
@@ -285,13 +307,25 @@ function VehiclesTab({ onChanged }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold tracking-tight truncate">{v.brand} {v.model} <span className="font-normal text-zinc-500">{v.version}</span></span>
                     <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 ${s.cls}`}>{s.label}</span>
+                    {isRepasse && (
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-[#FFF8EC] text-[#8A5F0D] border border-[#F5A623]">
+                        Repasse B2B
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-zinc-500 mt-1">
-                    {v.year_made}/{v.year_model} · {km(v.km)} · {v.city}/{v.uf} · <span className="font-bold text-black">{brl(v.price)}</span>
+                    {v.year_made}/{v.year_model} · {km(v.km)} · {v.city}/{v.uf} ·{" "}
+                    {isRepasse ? (
+                      <>
+                        <span className="text-zinc-500">FIPE {brl(v.fipe_price)}</span> · <span className="font-bold text-[#B5820E]">Oferta {brl(v.price)}</span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-black">{brl(v.price)}</span>
+                    )}
                   </div>
                   <div className="text-xs text-zinc-400 mt-0.5">Loja: {v.dealer?.store_name || "—"}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {v.status !== "active" && (
                     <button data-testid={APANEL.vehicleApprove(v.id)} onClick={() => setStatus(v.id, "active")}
                       className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 h-9 text-xs font-bold uppercase tracking-tight">
@@ -309,6 +343,13 @@ function VehiclesTab({ onChanged }) {
                       <RefreshCw size={14} /> Republicar
                     </button>
                   )}
+                  <button
+                    data-testid={`admin-vehicle-delete-${v.id}`}
+                    onClick={() => deleteVehicle(v.id)}
+                    className="inline-flex items-center gap-1 border border-zinc-300 hover:border-[#FF3B30] hover:bg-[#FF3B30] hover:text-white px-3 h-9 text-xs font-bold uppercase tracking-tight"
+                  >
+                    <Trash2 size={14} /> Excluir
+                  </button>
                 </div>
               </div>
             );

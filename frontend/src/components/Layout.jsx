@@ -28,6 +28,11 @@ export default function Layout({ children }) {
             <NavLink to="/veiculos" data-testid={NAV.veiculos} className={linkBase}>Veículos</NavLink>
             <NavLink to="/revendedores" data-testid={NAV.revendedores} className={linkBase}>Revendedores</NavLink>
             <NavLink to="/planos" data-testid={NAV.planos} className={linkBase}>Anuncie</NavLink>
+            {user && (user.role === "dealer" || user.role === "admin") && (
+              <NavLink to="/repasse" data-testid="nav-repasse" className={`${linkBase} text-[#B5820E] hover:text-[#F5A623]`}>
+                Repasse
+              </NavLink>
+            )}
             {user ? (
               <div className="flex items-center gap-4" data-testid={NAV.userMenu}>
                 {user.role === "admin" ? (
@@ -57,6 +62,11 @@ export default function Layout({ children }) {
               <NavLink onClick={() => setOpen(false)} to="/veiculos" className={linkBase}>Veículos</NavLink>
               <NavLink onClick={() => setOpen(false)} to="/revendedores" className={linkBase}>Revendedores</NavLink>
               <NavLink onClick={() => setOpen(false)} to="/planos" className={linkBase}>Anuncie</NavLink>
+              {user && (user.role === "dealer" || user.role === "admin") && (
+                <NavLink onClick={() => setOpen(false)} to="/repasse" className={`${linkBase} text-[#B5820E]`}>
+                  Repasse
+                </NavLink>
+              )}
               {user ? (
                 <>
                   {user.role === "admin" ? (
